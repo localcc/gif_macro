@@ -50,6 +50,9 @@ void _hideWindow() {
 
 void _showWindow() {
   windowManager.show();
+  windowManager.setAlwaysOnTop(true).then(
+        (e) => {windowManager.setAlwaysOnTop(false)},
+      ); // ensure the window is brought on top
   windowManager.focus();
   _focusNotifier.focus();
   _hidden = false;

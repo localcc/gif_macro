@@ -333,8 +333,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: "4012e476a2f93e913723ade52b25638ce604d4a5"
-      resolved-ref: "4012e476a2f93e913723ade52b25638ce604d4a5"
+      ref: d3ab1676320510b040fbab4e321e91411495dacc
+      resolved-ref: d3ab1676320510b040fbab4e321e91411495dacc
       url: "git@github.com:localcc/hid_listener.git"
     source: git
     version: "0.0.1"
