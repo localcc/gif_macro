@@ -73,6 +73,8 @@ void _keyboardListener(RawKeyEvent event) async {
 
   if (!_globalListening) return;
   if (_checkBind(_pressedKeys, _toggleWindowKeybind)) {
+    _pressedKeys
+        .clear(); // doing this so if we stop receiving events after showing/hiding the window we don't react to any keypress as a bind
     _hidden = !_hidden;
     if (_hidden) {
       _hideWindow();
