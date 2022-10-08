@@ -5,6 +5,8 @@ import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:gif_macro/dialogs/gif_edit_dialog.dart';
+import 'package:gif_macro/pages/idle.dart';
+import 'package:gif_macro/pages/permission_request.dart';
 import 'package:gif_macro/store/focus_store.dart';
 import 'package:hid_listener/hid_listener.dart';
 import 'package:isar/isar.dart';
@@ -45,10 +47,12 @@ bool _checkBind(List<int> pressedKeys, List<LogicalKeyboardKey> bind) {
 
 void _hideWindow() {
   windowManager.hide();
+  navigatorKey.currentState?.popAndPushNamed('/idle');
   _hidden = true;
 }
 
 void _showWindow() {
+  navigatorKey.currentState?.popAndPushNamed('/');
   windowManager.show();
   windowManager.setAlwaysOnTop(true).then(
         (e) => {windowManager.setAlwaysOnTop(false)},
@@ -78,8 +82,35 @@ void _keyboardListener(RawKeyEvent event) async {
   }
 }
 
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey();
+
+class _WindowListener with WindowListener {
+  @override
+  void onWindowRestore() {
+    _showWindow();
+    super.onWindowRestore();
+  }
+
+  @override
+  void onWindowBlur() {
+    _hideWindow();
+    super.onWindowBlur();
+  }
+
+  @override
+  void onWindowMinimize() {
+    _hideWindow();
+    super.onWindowMinimize();
+  }
+}
+
 void main() async {
-  registerKeyboardListener(_keyboardListener);
+  var initialRoute = '/';
+  if (registerKeyboardListener(_keyboardListener) == null) {
+    initialRoute = '/permissionRequest';
+  }
+
+  WidgetsFlutterBinding.ensureInitialized();
 
   final packageInfo = await PackageInfo.fromPlatform();
 
@@ -102,16 +133,22 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await windowManager.ensureInitialized();
 
-  runApp(MultiProvider(providers: [
-    ChangeNotifierProvider(
-        create: (context) => store.ImagesProvider(isar: isar)),
-    ChangeNotifierProvider(create: (context) => settingsProvider),
-    ChangeNotifierProvider(create: (context) => _focusNotifier)
-  ], child: const MyApp()));
+  windowManager.addListener(_WindowListener());
+
+  runApp(MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+            create: (context) => store.ImagesProvider(isar: isar)),
+        ChangeNotifierProvider(create: (context) => settingsProvider),
+        ChangeNotifierProvider(create: (context) => _focusNotifier)
+      ],
+      child: MyApp(
+        initialRoute: initialRoute,
+      )));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({required this.initialRoute, Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -123,9 +160,16 @@ class MyApp extends StatelessWidget {
             scrollbarTheme: const ScrollbarThemeData(thickness: 5.0),
             brightness: Brightness.dark,
             visualDensity: VisualDensity.adaptivePlatformDensity),
-        initialRoute: "/",
-        routes: {'/': (_) => const MainPage()});
+        initialRoute: initialRoute,
+        navigatorKey: navigatorKey,
+        routes: {
+          '/': (_) => const MainPage(),
+          '/permissionRequest': (_) => const PermissionRequestPage(),
+          '/idle': (_) => const IdlePage(),
+        });
   }
+
+  final String initialRoute;
 }
 
 class MainPage extends StatefulWidget {

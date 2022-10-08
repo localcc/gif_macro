@@ -42,12 +42,16 @@ dependencies:
   isar_flutter_libs: ^3.0.1
   launch_at_startup: ^0.2.0
   package_info_plus: ^1.4.3+1
-  window_manager: ^0.2.7
+  window_manager:
+    git:
+      url: git@github.com:localcc/window_manager.git
+      ref: 9829ddd815c866d86e832d4a827208d621da5480
   file_picker: ^5.2.0+1
+  url_launcher: ^6.1.6
   hid_listener:
     git:
       url: git@github.com:localcc/hid_listener.git
-      ref: d3ab1676320510b040fbab4e321e91411495dacc
+      ref: af607e002a213963d6bb02c890c45584980f5698
 
 dev_dependencies:
   flutter_test:

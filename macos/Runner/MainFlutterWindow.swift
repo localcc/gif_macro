@@ -1,7 +1,9 @@
 import Cocoa
 import FlutterMacOS
+import bitsdojo_window_macos
+import hid_listener
 
-class MainFlutterWindow: NSWindow {
+class MainFlutterWindow: BitsdojoWindow {
   override func awakeFromNib() {
     let flutterViewController = FlutterViewController.init()
     let windowFrame = self.frame
@@ -11,5 +13,9 @@ class MainFlutterWindow: NSWindow {
     RegisterGeneratedPlugins(registry: flutterViewController)
 
     super.awakeFromNib()
+  }
+
+  override func bitsdojo_window_configure() -> UInt {
+    return BDW_CUSTOM_FRAME
   }
 }
