@@ -4,6 +4,7 @@ import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:gif_macro/autoupdater/autoupdater.dart';
 import 'package:gif_macro/dialogs/gif_edit_dialog.dart';
 import 'package:gif_macro/pages/idle.dart';
 import 'package:gif_macro/pages/permission_request.dart';
@@ -107,6 +108,18 @@ class _WindowListener with WindowListener {
 }
 
 void main() async {
+  if (await update()) {
+    Process.start(
+      Platform.executable,
+      Platform.executableArguments,
+      workingDirectory: Directory.current.path,
+      environment: Platform.environment,
+      mode: ProcessStartMode.detached,
+    );
+
+    exit(0);
+  }
+
   var initialRoute = '/';
   if (registerKeyboardListener(_keyboardListener) == null) {
     initialRoute = '/permissionRequest';

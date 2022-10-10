@@ -52,6 +52,9 @@ dependencies:
     git:
       url: git@github.com:localcc/hid_listener.git
       ref: af607e002a213963d6bb02c890c45584980f5698
+  archive: ^3.3.1
+  pub_semver: ^2.1.1
+  http: ^0.13.5
 
 dev_dependencies:
   flutter_test:
