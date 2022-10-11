@@ -5,9 +5,11 @@ import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:gif_macro/autoupdater/autoupdater.dart';
+import 'package:gif_macro/autoupdater/github.dart';
 import 'package:gif_macro/dialogs/gif_edit_dialog.dart';
 import 'package:gif_macro/pages/idle.dart';
 import 'package:gif_macro/pages/permission_request.dart';
+import 'package:gif_macro/pages/update.dart';
 import 'package:gif_macro/store/focus_store.dart';
 import 'package:hid_listener/hid_listener.dart';
 import 'package:isar/isar.dart';
@@ -94,11 +96,11 @@ class _WindowListener with WindowListener {
     super.onWindowRestore();
   }
 
-  @override
-  void onWindowBlur() {
-    _hideWindow();
-    super.onWindowBlur();
-  }
+  // @override
+  // void onWindowBlur() {
+  //   _hideWindow();
+  //   super.onWindowBlur();
+  // }
 
   @override
   void onWindowMinimize() {
@@ -108,24 +110,18 @@ class _WindowListener with WindowListener {
 }
 
 void main() async {
-  if (await update()) {
-    Process.start(
-      Platform.executable,
-      Platform.executableArguments,
-      workingDirectory: Directory.current.path,
-      environment: Platform.environment,
-      mode: ProcessStartMode.detached,
-    );
-
-    exit(0);
-  }
-
-  var initialRoute = '/';
+  var nextRoute = '/';
   if (registerKeyboardListener(_keyboardListener) == null) {
-    initialRoute = '/permissionRequest';
+    nextRoute = '/permissionRequest';
   }
 
   WidgetsFlutterBinding.ensureInitialized();
+
+  final update = await getNewerRelease();
+  var initialRoute = nextRoute;
+  if (update != null) {
+    initialRoute = '/updateAvailable';
+  }
 
   final packageInfo = await PackageInfo.fromPlatform();
 
@@ -150,7 +146,8 @@ void main() async {
 
   windowManager.addListener(_WindowListener());
 
-  runApp(MultiProvider(
+  runApp(
+    MultiProvider(
       providers: [
         ChangeNotifierProvider(
             create: (context) => store.ImagesProvider(isar: isar)),
@@ -159,32 +156,40 @@ void main() async {
       ],
       child: MyApp(
         initialRoute: initialRoute,
-      )));
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({required this.initialRoute, Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return FluentApp(
-        title: "GifMacro",
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-            accentColor: SystemTheme.accentColor.accent.toAccentColor(),
-            scrollbarTheme: const ScrollbarThemeData(thickness: 5.0),
-            brightness: Brightness.dark,
-            visualDensity: VisualDensity.adaptivePlatformDensity),
-        initialRoute: initialRoute,
-        navigatorKey: navigatorKey,
         routes: {
           '/': (_) => const MainPage(),
           '/permissionRequest': (_) => const PermissionRequestPage(),
           '/idle': (_) => const IdlePage(),
-        });
+          '/updateAvailable': (_) =>
+              UpdatePage(nextRoute: nextRoute, update: update!),
+        },
+      ),
+    ),
+  );
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({required this.initialRoute, required this.routes, Key? key})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return FluentApp(
+      title: "GifMacro",
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+          accentColor: SystemTheme.accentColor.accent.toAccentColor(),
+          scrollbarTheme: const ScrollbarThemeData(thickness: 5.0),
+          brightness: Brightness.dark,
+          visualDensity: VisualDensity.adaptivePlatformDensity),
+      initialRoute: initialRoute,
+      navigatorKey: navigatorKey,
+      routes: routes,
+    );
   }
 
   final String initialRoute;
+  final Map<String, WidgetBuilder> routes;
 }
 
 class MainPage extends StatefulWidget {

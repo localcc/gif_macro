@@ -24,12 +24,16 @@ class GithubAsset {
 
 class GithubRelease {
   const GithubRelease(
-      {required this.tag, required this.name, required this.assets});
+      {required this.tag,
+      required this.name,
+      required this.body,
+      required this.assets});
 
   factory GithubRelease.fromJson(Map<String, dynamic> json) {
     return GithubRelease(
       tag: json['tag_name'],
       name: json['name'],
+      body: json['body'],
       assets: (json['assets'] as List<dynamic>)
           .map((e) => GithubAsset.fromJson(e))
           .toList(),
@@ -38,6 +42,7 @@ class GithubRelease {
 
   final String tag;
   final String name;
+  final String body;
   final List<GithubAsset> assets;
 }
 
@@ -60,7 +65,9 @@ class GithubApi {
     final url = Uri.parse(
         "https://api.github.com/repos/${_repoSlug!.owner}/${_repoSlug!.name}/releases/latest");
 
-    final headers = {"Accept": "application/vnd.github+json"};
+    final headers = {
+      "Accept": "application/vnd.github+json",
+    };
     final resp = await http.get(url, headers: headers);
 
     if (resp.statusCode == 200) {

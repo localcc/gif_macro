@@ -1,15 +1,15 @@
 import 'dart:io';
 
-import 'package:archive/archive_io.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:pub_semver/pub_semver.dart';
+import 'package:tar/tar.dart';
 
 import 'github.dart';
 
-Future<bool> update() async {
+Future<GithubRelease?> getNewerRelease() async {
   try {
-    final api = GithubApi()
-        .withSlug(const GithubRepoSlug(owner: "localcc", name: "gif_macro"));
+    final api = GithubApi().withSlug(
+        const GithubRepoSlug(owner: "localcc", name: "autoupdate_test"));
     final release = await api.getLatestRelease();
 
     final packageInfo = await PackageInfo.fromPlatform();
@@ -17,10 +17,41 @@ Future<bool> update() async {
     final releaseVersion = Version.parse(release.tag);
     final currentVersion = Version.parse(packageInfo.version);
 
-    if (currentVersion <= releaseVersion) {
-      return false;
+    if (currentVersion >= releaseVersion) {
+      return null;
     }
 
+    return release;
+  } catch (e) {
+    return null;
+  }
+}
+
+String getExecutablePath() {
+  if (Platform.isMacOS) {
+    final path = Platform.executable.split(Platform.pathSeparator);
+    final app = path.reversed.firstWhere((element) => element.endsWith(".app"));
+
+    final appExecutable =
+        path.sublist(0, path.indexOf(app) + 1).join(Platform.pathSeparator);
+    return appExecutable;
+  } else {
+    return Platform.executable
+        .split(Platform.pathSeparator)
+        .sublist(1)
+        .join(Platform.pathSeparator);
+  }
+}
+
+class _Symlink {
+  const _Symlink({required this.src, required this.link});
+  final String src;
+  final String link;
+}
+
+Future<bool> downloadUpdate(
+    GithubRelease release, Function(double) downloadCallback) async {
+  try {
     var platform = "";
 
     if (Platform.isWindows) {
@@ -31,16 +62,82 @@ Future<bool> update() async {
       platform = "macos";
     }
 
-    final asset = release.assets.firstWhere((e) => e.name.contains(platform));
+    final asset = release.assets.firstWhere(
+        (e) => e.name.contains(platform) && e.name.endsWith("tar.gz"));
     final download = await asset.download();
 
-    final data = await download.expand((element) => element).toList();
+    final contentLength = download.contentLength;
 
-    final archive = ZipDecoder().decodeBytes(data);
-    extractArchiveToDisk(archive, './');
+    var downloaded = 0;
+
+    final tarReader = TarReader(download.map((event) {
+      downloaded += event.length;
+      downloadCallback(downloaded / contentLength);
+      return event;
+    }).transform(gzip.decoder));
+
+    final executablePath = getExecutablePath();
+    final splitPath = executablePath.split(Platform.pathSeparator);
+    final parentPath =
+        splitPath.sublist(0, splitPath.length - 1).join(Platform.pathSeparator);
+
+    try {
+      await Directory('$executablePath.old').delete(recursive: true);
+      // ignore: empty_catches
+    } catch (e) {}
+
+    await Directory(executablePath).rename('$executablePath.old');
+
+    final List<_Symlink> symlinks = [];
+
+    while (await tarReader.moveNext()) {
+      final entry = tarReader.current;
+      final path = '$parentPath${Platform.pathSeparator}${entry.header.name}';
+
+      if (entry.header.typeFlag == TypeFlag.dir) {
+        await Directory(path).create(recursive: true);
+      } else if (entry.header.typeFlag == TypeFlag.reg) {
+        await entry.contents.pipe(File(path).openWrite());
+        if (Platform.isLinux || Platform.isMacOS) {
+          await Process.run('chmod', ['+x', path]);
+        }
+      } else if (entry.header.typeFlag == TypeFlag.symlink) {
+        symlinks.add(_Symlink(src: path, link: entry.header.linkName!));
+      }
+    }
+
+    for (final symlink in symlinks) {
+      if (Platform.isLinux || Platform.isMacOS) {
+        await Process.run('ln', ['-s', symlink.link, symlink.src]);
+      }
+    }
 
     return true;
   } catch (e) {
     return false;
   }
+}
+
+Future<void> restart() async {
+  if (Platform.isMacOS) {
+    final appExecutable = getExecutablePath();
+    await Process.start(
+      'sh',
+      [
+        '-c',
+        'sleep 5 && open $appExecutable',
+      ],
+      mode: ProcessStartMode.detached,
+    );
+  } else {
+    await Process.start(
+      Platform.executable,
+      Platform.executableArguments,
+      workingDirectory: Directory.current.path,
+      environment: Platform.environment,
+      mode: ProcessStartMode.detached,
+    );
+  }
+
+  exit(0);
 }
