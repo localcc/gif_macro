@@ -29,16 +29,16 @@ Future<GithubRelease?> getNewerRelease() async {
 
 String getExecutablePath() {
   if (Platform.isMacOS) {
-    final path = Platform.executable.split(Platform.pathSeparator);
+    final path = Platform.resolvedExecutable.split(Platform.pathSeparator);
     final app = path.reversed.firstWhere((element) => element.endsWith(".app"));
 
     final appExecutable =
         path.sublist(0, path.indexOf(app) + 1).join(Platform.pathSeparator);
     return appExecutable;
   } else {
-    return Platform.executable
-        .split(Platform.pathSeparator)
-        .sublist(1)
+    final splitPath = Platform.resolvedExecutable.split(Platform.pathSeparator);
+    return splitPath
+        .sublist(0, splitPath.length - 1)
         .join(Platform.pathSeparator);
   }
 }
@@ -92,7 +92,19 @@ Future<bool> downloadUpdate(
 
     while (await tarReader.moveNext()) {
       final entry = tarReader.current;
-      final path = '$parentPath${Platform.pathSeparator}${entry.header.name}';
+
+      var path = '';
+      if (Platform.isMacOS) {
+        path = '$parentPath${Platform.pathSeparator}${entry.header.name}';
+      } else {
+        //path = '$parentPath${Platform.pathSeparator}${entry.header.name}';
+        final splitName = entry.header.name
+            .split(Platform.pathSeparator)
+            .sublist(1)
+            .join(Platform.pathSeparator);
+        if (splitName.isEmpty) continue;
+        path = '$executablePath${Platform.pathSeparator}$splitName';
+      }
 
       if (entry.header.typeFlag == TypeFlag.dir) {
         await Directory(path).create(recursive: true);
@@ -129,9 +141,12 @@ Future<void> restart() async {
       ],
       mode: ProcessStartMode.detached,
     );
+  } else if (Platform.isLinux) {
+    // doing nothing, starting it back always started the app with a blackscreen and no errors/warnings on stdout/stderr.
+    // feel free to make a pull request if you figure it out!
   } else {
     await Process.start(
-      Platform.executable,
+      Platform.resolvedExecutable,
       Platform.executableArguments,
       workingDirectory: Directory.current.path,
       environment: Platform.environment,

@@ -110,62 +110,67 @@ class _WindowListener with WindowListener {
 }
 
 void main() async {
-  var nextRoute = '/';
-  if (registerKeyboardListener(_keyboardListener) == null) {
-    nextRoute = '/permissionRequest';
-  }
+  try {
+    var nextRoute = '/';
+    if (registerKeyboardListener(_keyboardListener) == null) {
+      nextRoute = '/permissionRequest';
+    }
 
-  WidgetsFlutterBinding.ensureInitialized();
+    WidgetsFlutterBinding.ensureInitialized();
 
-  final update = await getNewerRelease();
-  var initialRoute = nextRoute;
-  if (update != null) {
-    initialRoute = '/updateAvailable';
-  }
+    final update = await getNewerRelease();
+    var initialRoute = nextRoute;
+    if (update != null) {
+      initialRoute = '/updateAvailable';
+    }
 
-  final packageInfo = await PackageInfo.fromPlatform();
+    final packageInfo = await PackageInfo.fromPlatform();
 
-  LaunchAtStartup.instance.setup(
-      appName: packageInfo.appName, appPath: Platform.resolvedExecutable);
+    LaunchAtStartup.instance.setup(
+        appName: packageInfo.appName, appPath: Platform.resolvedExecutable);
 
-  final isar =
-      await Isar.open([store.ImageSchema, settings_store.SettingsSchema]);
+    final isar =
+        await Isar.open([store.ImageSchema, settings_store.SettingsSchema]);
 
-  final settingsProvider = settings_store.SettingsProvider(isar: isar);
-  await settingsProvider
-      .setRunOnStartup(await LaunchAtStartup.instance.isEnabled());
+    final settingsProvider = settings_store.SettingsProvider(isar: isar);
+    await settingsProvider
+        .setRunOnStartup(await LaunchAtStartup.instance.isEnabled());
 
-  await _loadBinds(settingsProvider);
-
-  settingsProvider.addListener(() async {
     await _loadBinds(settingsProvider);
-  });
 
-  WidgetsFlutterBinding.ensureInitialized();
-  await windowManager.ensureInitialized();
+    settingsProvider.addListener(() async {
+      await _loadBinds(settingsProvider);
+    });
 
-  windowManager.addListener(_WindowListener());
+    WidgetsFlutterBinding.ensureInitialized();
+    await windowManager.ensureInitialized();
 
-  runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(
-            create: (context) => store.ImagesProvider(isar: isar)),
-        ChangeNotifierProvider(create: (context) => settingsProvider),
-        ChangeNotifierProvider(create: (context) => _focusNotifier)
-      ],
-      child: MyApp(
-        initialRoute: initialRoute,
-        routes: {
-          '/': (_) => const MainPage(),
-          '/permissionRequest': (_) => const PermissionRequestPage(),
-          '/idle': (_) => const IdlePage(),
-          '/updateAvailable': (_) =>
-              UpdatePage(nextRoute: nextRoute, update: update!),
-        },
+    windowManager.addListener(_WindowListener());
+
+    runApp(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(
+              create: (context) => store.ImagesProvider(isar: isar)),
+          ChangeNotifierProvider(create: (context) => settingsProvider),
+          ChangeNotifierProvider(create: (context) => _focusNotifier)
+        ],
+        child: MyApp(
+          initialRoute: initialRoute,
+          routes: {
+            '/': (_) => const MainPage(),
+            '/permissionRequest': (_) => const PermissionRequestPage(),
+            '/idle': (_) => const IdlePage(),
+            '/updateAvailable': (_) =>
+                UpdatePage(nextRoute: nextRoute, update: update!),
+          },
+        ),
       ),
-    ),
-  );
+    );
+  } catch (e) {
+    print(e);
+    exit(0);
+  }
 }
 
 class MyApp extends StatelessWidget {
