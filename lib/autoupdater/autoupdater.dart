@@ -81,12 +81,14 @@ Future<bool> downloadUpdate(
     final parentPath =
         splitPath.sublist(0, splitPath.length - 1).join(Platform.pathSeparator);
 
-    try {
-      await Directory('$executablePath.old').delete(recursive: true);
-      // ignore: empty_catches
-    } catch (e) {}
+    var downloadPath = '';
+    if (Platform.isMacOS) {
+      downloadPath = '$parentPath.new';
+    } else {
+      downloadPath = '$executablePath.new';
+    }
 
-    await Directory(executablePath).rename('$executablePath.old');
+    await Directory(downloadPath).create(recursive: true);
 
     final List<_Symlink> symlinks = [];
 
@@ -97,13 +99,12 @@ Future<bool> downloadUpdate(
       if (Platform.isMacOS) {
         path = '$parentPath${Platform.pathSeparator}${entry.header.name}';
       } else {
-        //path = '$parentPath${Platform.pathSeparator}${entry.header.name}';
         final splitName = entry.header.name
-            .split(Platform.pathSeparator)
+            .split("/")
             .sublist(1)
             .join(Platform.pathSeparator);
         if (splitName.isEmpty) continue;
-        path = '$executablePath${Platform.pathSeparator}$splitName';
+        path = '$downloadPath${Platform.pathSeparator}$splitName';
       }
 
       if (entry.header.typeFlag == TypeFlag.dir) {
@@ -131,13 +132,14 @@ Future<bool> downloadUpdate(
 }
 
 Future<void> restart() async {
+  final appExecutable = getExecutablePath();
+
   if (Platform.isMacOS) {
-    final appExecutable = getExecutablePath();
     await Process.start(
       'sh',
       [
         '-c',
-        'sleep 5 && open $appExecutable',
+        'sleep 5 && rm -rf $appExecutable && mv $appExecutable.new $appExecutable && open $appExecutable',
       ],
       mode: ProcessStartMode.detached,
     );
@@ -146,10 +148,11 @@ Future<void> restart() async {
     // feel free to make a pull request if you figure it out!
   } else {
     await Process.start(
-      Platform.resolvedExecutable,
-      Platform.executableArguments,
-      workingDirectory: Directory.current.path,
-      environment: Platform.environment,
+      'cmd',
+      [
+        '/c',
+        'cd / && timeout /t 5 && rmdir /s /q $appExecutable && move $appExecutable.new $appExecutable && ${Platform.resolvedExecutable}'
+      ],
       mode: ProcessStartMode.detached,
     );
   }
