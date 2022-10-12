@@ -10,8 +10,8 @@ import 'github.dart';
 
 Future<GithubRelease?> getNewerRelease() async {
   try {
-    final api = GithubApi().withSlug(
-        const GithubRepoSlug(owner: "localcc", name: "autoupdate_test"));
+    final api = GithubApi()
+        .withSlug(const GithubRepoSlug(owner: "localcc", name: "gif_macro"));
     final release = await api.getLatestRelease();
 
     final packageInfo = await PackageInfo.fromPlatform();

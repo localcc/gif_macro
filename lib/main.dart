@@ -92,15 +92,15 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey();
 class _WindowListener with WindowListener {
   @override
   void onWindowRestore() {
-    _showWindow();
+    _hidden = false;
     super.onWindowRestore();
   }
 
-  // @override
-  // void onWindowBlur() {
-  //   _hideWindow();
-  //   super.onWindowBlur();
-  // }
+  @override
+  void onWindowBlur() {
+    _hidden = true;
+    super.onWindowBlur();
+  }
 
   @override
   void onWindowMinimize() {
@@ -147,6 +147,13 @@ void main() async {
 
     windowManager.addListener(_WindowListener());
 
+    doWhenWindowReady(() {
+      var size = const Size(600, 450);
+      appWindow.minSize = size;
+      appWindow.size = size;
+      appWindow.show();
+    });
+
     runApp(
       MultiProvider(
         providers: [
@@ -168,7 +175,6 @@ void main() async {
       ),
     );
   } catch (e) {
-    print(e);
     exit(0);
   }
 }
@@ -280,10 +286,10 @@ class _MainPageState extends State<MainPage> {
                 Expanded(
                     child: Padding(
                         padding: const EdgeInsets.only(top: 4.0),
-                        child: MasonryGridView.count(
-                            crossAxisCount: 5,
-                            crossAxisSpacing: 0,
-                            mainAxisSpacing: 0,
+                        child: MasonryGridView.builder(
+                            gridDelegate:
+                                const SliverSimpleGridDelegateWithMaxCrossAxisExtent(
+                                    maxCrossAxisExtent: 300.0),
                             padding: const EdgeInsets.only(right: 14.0),
                             itemCount: _matchingImages.length,
                             itemBuilder: (context, index) {
