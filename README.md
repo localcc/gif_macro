@@ -1,5 +1,7 @@
-# gif_macro
+# ![Icon](macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_64.png) Gif Macro
 
 A gif categorizer application.
 
-This app can help you categorize your gifs by keywords and quickly search them and copy their link.
+![MainPage](screenshots/gif_macro_mainpage.png)
+
+This app can help you categorize your gifs by keywords and quickly search them to copy their link.
