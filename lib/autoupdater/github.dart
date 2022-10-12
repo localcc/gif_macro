@@ -13,6 +13,8 @@ class GithubAsset {
   Future<HttpClientResponse> download() async {
     final request = await HttpClient().getUrl(Uri.parse(url));
     request.headers.add("Accept", "application/octet-stream");
+    request.headers.add(
+        "Authorization", "Bearer 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");
 
     final response = await request.close();
     return response;
@@ -67,6 +69,7 @@ class GithubApi {
 
     final headers = {
       "Accept": "application/vnd.github+json",
+      "Authorization": "Bearer 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"
     };
     final resp = await http.get(url, headers: headers);
 

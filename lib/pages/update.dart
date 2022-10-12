@@ -1,8 +1,5 @@
-import 'dart:io';
-
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:fluent_ui/fluent_ui.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:gif_macro/autoupdater/autoupdater.dart';
 import 'package:gif_macro/autoupdater/github.dart';
@@ -80,7 +77,6 @@ class _UpdatePageState extends State<UpdatePage> {
                       );
                     },
                   ),
-                  Button(child: Text("Restart"), onPressed: () => restart()),
                 ] else ...[
                   ProgressBar(value: _updateProgress * 100)
                 ]
