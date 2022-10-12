@@ -77,16 +77,12 @@ Future<bool> downloadUpdate(
     }).transform(gzip.decoder));
 
     final executablePath = getExecutablePath();
-    final splitPath = executablePath.split(Platform.pathSeparator);
-    final parentPath =
-        splitPath.sublist(0, splitPath.length - 1).join(Platform.pathSeparator);
+    final downloadPath = '$executablePath.new';
 
-    var downloadPath = '';
-    if (Platform.isMacOS) {
-      downloadPath = '$parentPath.new';
-    } else {
-      downloadPath = '$executablePath.new';
-    }
+    try {
+      await Directory(downloadPath).delete(recursive: true);
+      // ignore: empty_catches
+    } catch (e) {}
 
     await Directory(downloadPath).create(recursive: true);
 
@@ -95,17 +91,10 @@ Future<bool> downloadUpdate(
     while (await tarReader.moveNext()) {
       final entry = tarReader.current;
 
-      var path = '';
-      if (Platform.isMacOS) {
-        path = '$parentPath${Platform.pathSeparator}${entry.header.name}';
-      } else {
-        final splitName = entry.header.name
-            .split("/")
-            .sublist(1)
-            .join(Platform.pathSeparator);
-        if (splitName.isEmpty) continue;
-        path = '$downloadPath${Platform.pathSeparator}$splitName';
-      }
+      final splitName =
+          entry.header.name.split("/").sublist(1).join(Platform.pathSeparator);
+      if (splitName.isEmpty) continue;
+      final path = '$downloadPath${Platform.pathSeparator}$splitName';
 
       if (entry.header.typeFlag == TypeFlag.dir) {
         await Directory(path).create(recursive: true);
